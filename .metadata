@@ -1,0 +1,10 @@
+{
+    "name" : "starbound-betterwidgets",
+    "friendlyName" : "Starbound-BetterWidgets",
+    "priority" : 0,
+    "version" : "0.0.1",
+    "author" : "Magicks",
+    "description" : "Adds better support for manipulating and using UI widgets in starbound",
+    "requires" : [],
+    "includes" : []
+}

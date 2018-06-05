@@ -1,0 +1,7 @@
+{ 
+    /*
+    Custom widget paths go in here!
+    Relative paths assume your script is within the /better-widgets/custom/ directory
+    */
+    "colorpicker" : "colorpicker/colorpicker.lua"
+}
