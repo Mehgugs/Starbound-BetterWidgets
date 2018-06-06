@@ -6,7 +6,7 @@ local containerPath = {
   layout = "children.%s"
 }
 
-local fetchConfig = function(n,...) return config.getParameter(("gui.%s"):format(n)) end
+local fetchConfig = function(n) return config.getParameter(("gui.%s"):format(n)) end
 
 local function split(str, patt)
 	local out = {}
@@ -16,15 +16,54 @@ local function split(str, patt)
   return out
 end
 
-local widTypes = setmetatable({}, {__mode = "k"})
-function widgetType(path)
-    if widTypes[path] then return widTypes[path]
-    else local typ = fetchConfig(("%s.type"):format(path))
-        widTypes[path] = typ
-        return typ 
-    end
+
+local function widgetType(path)
+    return fetchConfig(("%s.type"):format(path))
 end
 
+local containerInserts = {
+    scrollArea = ".children",
+    list = ".schema.listTemplate",
+    layout = ".children"
+}
+
+local concat = table.concat
+
+function doFixPath(path, i)
+    i = i or 1
+    
+    local parent, rest = concat(path, ".", 1, i)
+    local parentType = widgetType(parent)
+    if parentType and path[i+1] then 
+        local nextWidgetPath = ("%s%s.%s"):format(parent,containerInserts[parentType] or '', path[i+1])
+        local nextType = widgetType(nextWidgetPath)
+        if nextType then 
+            path[i] = parent .. containerInserts[parentType] or ''
+            return doFixPath(path, i+1)
+        end
+    end
+
+    return concat(path, ".")
+end
+
+local fixedPaths = setmetatable({}, {
+    __mode = "k",
+    __index = function(self, path)
+        sb.logInfo("path %s needs expansion", path)
+        local fixed = doFixPath(split(path, "[^.]+"))
+        self[path] = fixed
+        return fixed 
+    end
+})
+
+function fixPath(path)
+    return fixedPaths[path]
+end
+
+function widgetParameter(path, ...) 
+    path = path:format(...)
+    return fetchConfig(path) or fetchConfig(fixPath(path))
+end
 
 local function findNestedWidgetConfig(parts)
     local parent = pop(parts)
@@ -48,26 +87,6 @@ local function findNestedWidgetConfig(parts)
             end
         end
     end
-end
-
-local containerInserts = {
-    scrollArea = ".children",
-    list = ".schema.listTemplate",
-    layout = ".children"
-}
-
-local function fixPath(path)
-    local parent, rest = path:match("([^.]+)%.(.+)")
-    local parentType= widgetType(parent)
-    if parentType then 
-        local parentPath = containerInserts[parentType] and parent .. containerInserts[parentType] or parent
-        return ("%s.%s"):format(parentPath, fixPath(rest))
-    end
-    return path
-end
-
-function widgetParameter(path, ...)
-    return fetchConfig(fixPath(path:format(...)))
 end
 
 function widgetConfig(path)

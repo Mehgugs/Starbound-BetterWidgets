@@ -1,5 +1,8 @@
+--- public interface for using the widget objects
+--  @module bw
+--  @field widgets the table of widgets from "scriptedWidgets" config parameter
 require"/better-widgets/widget.lua"
-
+local get = rawget
 local upper = string.upper
 local function noun(s) return s:lower():gsub("^.",upper,1) end
 
@@ -7,10 +10,16 @@ bw = { widgets = {} }
 
 setmetatable(bw, bw)
 
+--- loads the script for the corresponding widget type
+--  @within bw
+--  @tparam string widtype the widget type
 function bw.load(widtype)
     return require(("/better-widgets/widgets/%s.lua"):format(widtype))
 end
 
+--- loads the script for the corresponding custom widget type
+--  @within bw
+--  @tparam string name the name of the custom widget type
 function bw.loadCustom(name)
     bw.init()
     if bw.manifest[name] then 
@@ -19,8 +28,13 @@ function bw.loadCustom(name)
 end
 
 local function loadWid(name, ref)
-    local widType = widgetType(name)
-    if widType == nil then error(("widget '%s' does not exist."):format(name)) end
+    if get(bw.widgets, ref) then 
+        return error(("Cannot create a widget with the reference '%s'; it already exists."):format(ref), 2)
+    end
+    local widType = widgetParameter("%s.type", name)
+    if widType == nil then 
+        return error(("Widget '%s' does not exist."):format(name), 2) 
+    end
     
     local custom = widgetParameter("%s.typeOverride", name)
     local class = noun(custom or widType)
@@ -39,18 +53,24 @@ local function loadWid(name, ref)
     bw.widgets[ref] = _ENV[class]:new(name)
     return bw.widgets[ref]
 end
-
+--- loads a widget object
+--  @within bw
+--  @tparam string name the name/path of the widget
+--  @param[opt] ref internal parameter, do not use
+--  @return the widget object
 function bw.loadScriptedWidget(name, ref)
     ref = ref or name:match("[^.]+$")
-    return bw.widgets[ref] or loadWid(name, ref) 
+    return get(bw.widgets,ref) or loadWid(name, ref) 
 end
 
-local function loadScriptedWidgets() --creates a global "widgets" table containing widget objects.
+local function loadScriptedWidgets()
     for name,ref in pairs(config.getParameter("scriptedWidgets",{})) do 
         loadWid(name, ref)
     end
 end
 
+--- internally called by the module to initialize widgets and load the custom widget manifest
+--  @within bw
 function bw.init()
     if not bw.ready and root then 
         bw.ready = true
@@ -59,11 +79,20 @@ function bw.init()
     end
 end
 
-bw.__call = bw.loadScriptedWidget
+--- alias for loading a widget
+--  @within bw metamethods
+--  @function bw
+--  @see bw.loadScriptedWidget
+---
+
+bw.__call = function(_,...) return bw.loadScriptedWidget(...) end
 
 setmetatable(bw.widgets, {__index = function(self, k) 
     bw.init()
     return get(self, k)
 end})
 
+--- table of widgets available
+--  @table widgets
+--  @within bw
 widgets = bw.widgets

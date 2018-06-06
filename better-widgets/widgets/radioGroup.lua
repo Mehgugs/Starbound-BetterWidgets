@@ -1,27 +1,27 @@
 require"/better-widgets/widget.lua"
 
-ButtonGroup = Widget:extend()
-Buttongroup = ButtonGroup
+RadioGroup = Widget:extend()
+Radiogroup = RadioGroup
 
-function ButtonGroup:getSelectedOption()
+function RadioGroup:getSelectedOption()
   return widget.getSelectedOption(self.name)
 end
 
-function ButtonGroup:getSelectedData()
+function RadioGroup:getSelectedData()
   return widget.getSelectedData(self.name)
 end
 
-function ButtonGroup:setSelectedOption (index)
+function RadioGroup:setSelectedOption (index)
   widget.setSelectedOption(self.name,index)
   return self
 end
 
-function ButtonGroup:setOptionEnabled (index,enb)
+function RadioGroup:setOptionEnabled (index,enb)
   widget.setOptionEnabled(self.name,index,enb)
   return self
 end
 
-function ButtonGroup:setOptionVisible (index,enb)
+function RadioGroup:setOptionVisible (index,enb)
   widget.setOptionVisible(self.name,index,enb)
   return self
 end

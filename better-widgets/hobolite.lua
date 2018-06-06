@@ -1,6 +1,6 @@
 --[[
   Taken from : https://github.com/StormyUK/Macrochip/blob/master/scripts/Storm_UI/hobo.lua
-  (Author pasted this in a public discord channel for people to use)
+  (Although this falls under GPL this script was uploaded to a public discord channel by the author and the author said it could be used in any project, or words to that effect.)
   Changes:
     remove hobo.drawText
 ]]

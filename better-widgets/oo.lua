@@ -1,4 +1,3 @@
-require"/scripts/common/utils.lua"
 local unpack,insert,static = table.unpack,table.insert,{}
 
 local function indexer(class)

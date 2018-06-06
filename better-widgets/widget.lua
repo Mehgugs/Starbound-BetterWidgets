@@ -2,9 +2,9 @@ require"/scripts/vec2.lua"
 require"/scripts/rect.lua"
 require"/scripts/util.lua"
 
-require"/scripts/better-widgets/hobolite.lua"
-require"/scripts/better-widgets/oo.lua"
-require"/scripts/better-widgets/config-fetcher.lua"
+require"/better-widgets/hobolite.lua"
+require"/better-widgets/oo.lua"
+require"/better-widgets/config-fetcher.lua"
 
 Widget = newObject()
 function Widget:new (...)
@@ -17,15 +17,8 @@ function Widget:new (...)
 end
 
 function Widget:newFrom (...)
-    local new = setmetatable({}, self)
-    if self.__base and self.initial ~= Widget.initial then
-      Widget.initialFrom(new,...)
-      new:initial(...)
-    else
-      Widget.initialFrom(new,...)
-    end
-    
-    return new
+    sb.logWarn("Widget:newFrom is deprecated?")
+    return self:new(...)
 end
 
 local null = {}
@@ -42,7 +35,7 @@ function Widget:extend ()
 end
 
 function Widget:initial(name,path)
-    self.configpath = path or name
+    self.configpath = fixPath(path or name)
     self._config = {}
     self.name = name
 
@@ -59,7 +52,7 @@ function Widget:initialFrom(name,config)
     self.name = name
     self._config = config
  
-    self.initialSize = self:config"size" or widget.getSize(self.name)
+    self:findInitialSize()
 
     self.initialPosition = copy(self.position)
 
@@ -89,6 +82,10 @@ end
 function Widget:setPosition (pos)
     widget.setPosition(self.name,pos)
     return self
+end
+
+function Widget:findInitialSize()
+    if not self.initialSize then self.initialSize = self.Size or self:config"size" end
 end
 
 function Widget:getSize ()

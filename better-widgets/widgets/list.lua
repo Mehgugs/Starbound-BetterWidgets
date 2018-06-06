@@ -12,7 +12,7 @@ function List:initial ()
   self.full_nonce = ("%s.%%s.%%s"):format(self.name)
 end
 
-function List:clearItems ()
+function List:clear ()
   self.list = { }
   self.widgets = { }
   self._components = { }
@@ -21,7 +21,7 @@ function List:clearItems ()
   return self
 end
 
-function List:addListItems (n)
+function List:addItems(n)
   for i=1,n do
     local index = widget.addListItem(self.name)
     self.length = self.length + 1
@@ -32,13 +32,17 @@ function List:addListItems (n)
   return self
 end
 
-function List:addListItem ()
+function List:addItem ()
   local index = widget.addListItem(self.name)
   self.length = self.length + 1
   self.widgets[index] = self.length
   insert(self.list,index)
   self._components[self.length] = self:makeComponent(index)
   return self.nonce:format(index),index
+end
+
+function List:add(n)
+  if n then return self:addItems(n) else return self:addItem() end
 end
 
 local function listiter(self)
