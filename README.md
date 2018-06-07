@@ -59,8 +59,8 @@ end
 
 ##### Custom widgets
 ```json
-{
-    "name" : "mycolorpicker",
+"mycolorpicker": {
+
     "type" : "canvas",
     "typeOverride" : "colorpicker",
     //regular canvas options...
