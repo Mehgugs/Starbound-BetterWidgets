@@ -108,11 +108,10 @@ end
 function List:makeComponent (idx)
   local out = {_listIndex = idx}
   local wids = self:config"schema".listTemplate
-  for widName,conf in pairs(wids) do
-    local widType = conf.type
+  for widName in pairs(wids) do
+
     local fullName = self:componentPath(idx,widName)
-    local class = widType:lower():gsub("^.",string.upper,1)
-    out[widName] = _ENV[class]:newFrom(fullName,conf)
+    out[widName] = self.master.loadScriptedWidget(fullName)
   end
   return out
 end
