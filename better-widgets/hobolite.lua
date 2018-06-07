@@ -1,3 +1,6 @@
+--- small module for providing text length utility.
+--  @module hobo
+
 --[[
   Taken from : https://github.com/StormyUK/Macrochip/blob/master/scripts/Storm_UI/hobo.lua
   (Although this falls under GPL this script was uploaded to a public discord channel by the author and the author said it could be used in any project, or words to that effect.)
@@ -6,6 +9,7 @@
 ]]
 hobo = {}
 
+--- list of character widths for common characters.
 hobo.charWidths = {
 
     10,10,10,10,10,10,10,10,0,0,
@@ -60,6 +64,10 @@ hobo.charWidths = {
   -- û   ü   ý   þ   ÿ                         þ = Cat Face
     10,10,10,15,10 }
 
+--- gets the length in pixels the given string takes up, (assuming in-game font is hobo.ttf).
+--  @tparam string text the text to check
+--  @tparam[opt] number fontSize the fontSize to use (defaults to 16)
+--  @treturn number the pixel length of the string  
 function hobo.getLength(text,fontSize)
   local fontSize = fontSize or 16
   local width = 0

@@ -5,7 +5,7 @@ local function indexer(class)
     local getKey = 'get'..tostring(k):gsub("^.",string.upper)
     if class[getKey] then
       return class[getKey](self)
-    elseif class[k] and not static[class][k] then
+    elseif class[k] ~= nil and not static[class][k] then
       return class[k]
     end
   end
@@ -27,6 +27,7 @@ function newObject (t)
   t.__newindex = newindexer(t)
   t.__index = indexer(t)
   static[t] = {}
+  t.__self = t
   return t
 end
 

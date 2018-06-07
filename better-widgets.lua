@@ -1,98 +1,158 @@
---- public interface for using the widget objects
+--- public interface for using the widget objects.
 --  @module bw
 --  @field widgets the table of widgets from "scriptedWidgets" config parameter
 require"/better-widgets/widget.lua"
 local get = rawget
-local upper = string.upper
-local function noun(s) return s:lower():gsub("^.",upper,1) end
 
-bw = { widgets = {} }
+bw = { widgets = {}, registered = {}, refs = {} }
 
 setmetatable(bw, bw)
 
---- loads the script for the corresponding widget type
---  @within bw
---  @tparam string widtype the widget type
-function bw.load(widtype)
-    return require(("/better-widgets/widgets/%s.lua"):format(widtype))
-end
 
---- loads the script for the corresponding custom widget type
---  @within bw
---  @tparam string name the name of the custom widget type
-function bw.loadCustom(name)
-    bw.init()
-    if bw.manifest[name] then 
-        return require(util.absolutePath("/better-widgets/custom/", bw.manifest[name]))
-    end
-end
-
-local function loadWid(name, ref)
-    if get(bw.widgets, ref) then 
-        return error(("Cannot create a widget with the reference '%s'; it already exists."):format(ref), 2)
-    end
-    local widType = widgetParameter("%s.type", name)
-    if widType == nil then 
-        return error(("Widget '%s' does not exist."):format(name), 2) 
-    end
-    
-    local custom = widgetParameter("%s.typeOverride", name)
-    local class = noun(custom or widType)
-
-    if custom then
-        bw.loadCustom(custom)
-    else
-        bw.load(widType)
-    end
-
-    if custom and _ENV[class] == nil then
-        bw.load(widType)
-        sb.logWarn("Could not find custom widget object %s (aka %s) using '%s' instead.",custom,class,widType)
-        class = noun(widType)
-    end
-    bw.widgets[ref] = _ENV[class]:new(name)
-    return bw.widgets[ref]
-end
---- loads a widget object
+--- loads a widget object.
 --  @within bw
 --  @tparam string name the name/path of the widget
 --  @param[opt] ref internal parameter, do not use
 --  @return the widget object
-function bw.loadScriptedWidget(name, ref)
-    ref = ref or name:match("[^.]+$")
-    return get(bw.widgets,ref) or loadWid(name, ref) 
+function bw.loadScriptedWidget(name,ref)
+    bw.init()
+    ref = ref or name:gsub("%.", "_")
+    local wid = get(bw.widgets,ref) 
+    if wid == nil then 
+        bw.refs[name] = ref
+        wid = loadWidget(name, ref, bw.widgets, bw)
+    end 
+    return wid
 end
 
 local function loadScriptedWidgets()
     for name,ref in pairs(config.getParameter("scriptedWidgets",{})) do 
-        loadWid(name, ref)
+        bw.refs[name] = ref
+        loadWidget(name, bw.widgets, ref, bw.widgets, bw)
     end
 end
 
---- internally called by the module to initialize widgets and load the custom widget manifest
+--- internally called by the module to initialize widgets and load the custom widget manifest.
 --  @within bw
 function bw.init()
     if not bw.ready and root then 
         bw.ready = true
         bw.manifest = root.assetJson("/custom-widgets.json")
-        loadScriptedWidgets()
+        for name, src in pairs(bw.manifest) do 
+            bw.log("loaded plugin %s @ '%s'", name, src)
+        end
     end
 end
 
---- alias for loading a widget
+--- for logging information from bw.
+--  @within bw
+--  @tparam string content the content of the message
+--  @tparam[opt] string ... format parameters to content:format
+function bw.log(content, ...)
+    local msg = content:format(...)
+    return sb.logInfo("[Better-Widgets] %s", msg)
+end
+
+--- for logging warnings from bw.
+--  @within bw
+--  @tparam string content the content of the message
+--  @tparam[opt] string ... format parameters to content:format
+function bw.warn(content, ...)
+    local msg = content:format(...)
+    if bw._strict then return bw.fatal("[From warning] %s", msg) end
+    return sb.logWarn("[Better-Widgets] %s", msg)
+end
+
+--- for logging errors from bw.
+--  @within bw
+--  @tparam string content the content of the message
+--  @param[opt] ... format parameters to content:format
+function bw.error(content, ...)
+    local msg = content:format(...)
+    if bw._strict then return bw.fatal("[From error] %s", msg) end
+    return sb.logError("[Better-Widgets] %s", msg)
+end
+
+--- for throwing a lua error from bw.
+--  @within bw 
+--  @tparam string msg the message
+--  @param[opt] ... format parameters to msg:format
+function bw.fatal(msg,...)
+    local content = msg:format(...)
+    return error(("[Better-Widgets] [Fatal] %s"):format(content), 2)
+end
+
+function bw.debug(msg, ...)
+    return bw._debug and bw.log("[Debug] %s", msg:format(...))
+end 
+
+function bw.debugging()
+    bw._debug = true
+end
+
+function bw.prod()
+    bw._debug = false
+end 
+
+function bw.strict()
+    bw._strict = true
+end
+
+bw.normalizeNames = false
+
+--- alias for loading a widget.
 --  @within bw metamethods
 --  @function bw
 --  @see bw.loadScriptedWidget
 ---
+function bw:__call(name)
+    return bw.loadScriptedWidget(name)
+end
 
-bw.__call = function(_,...) return bw.loadScriptedWidget(...) end
+local better_env_props = {}
+function better_env_props.betterwidget(widgetName, widgetData)
+    local name = bw.registered[widgetName]
+    local ref = name and bw.refs[name]
+    if name and ref then 
+        local wid = get(bw.widgets, ref)
+        if wid == nil then 
+            bw.fatal("Could not find the widget for callback applied to '%s'? (reference='%s')", widgetName, ref)
+        end
+        return wid:callback(bw.normalizeNames and name or widgetName, widgetData)
+    else
+        bw.warn("Widget '%s' did not have it's callback configured?", widgetName)
+    end
+end
+
+local set = rawset 
+
+function rawset(tbl, key, value)
+    if tbl == _ENV and better_env_props[key] ~= nil then
+        bw.fatal("Cannot overwrite global property '%s'.", key)
+    end
+    return set(tbl, key, value)
+end
+
+local better_env = {
+    __metatable = {},
+    __index = better_env_props,
+    __newindex = function(self, k, v)
+        if better_env_props[k] ~= nil then
+            bw.fatal("Cannot overwrite global property '%s'.", key)
+        end
+        return set(self, k, v) 
+    end
+}
+
+setmetatable(_ENV, better_env)
 
 setmetatable(bw.widgets, {__index = function(self, k) 
     bw.init()
+    loadScriptedWidgets()
     return get(self, k)
 end})
 
---- table of widgets available
+--- table of widgets available.
 --  @table widgets
 --  @within bw
 widgets = bw.widgets
