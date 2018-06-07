@@ -27,8 +27,8 @@ end
 
 local function loadScriptedWidgets()
     for name,ref in pairs(config.getParameter("scriptedWidgets",{})) do 
-        bw.refs[name] = ref
         loadWidget(name, bw.widgets, ref, bw.widgets, bw)
+        bw.refs[name] = ref
     end
 end
 

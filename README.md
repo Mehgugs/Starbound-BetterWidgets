@@ -83,6 +83,57 @@ All widget objects can be extended, as long as the custom widget is documented i
 
 (Custom widgets must extend `Widget` or an extension of `Widget`)
 
+#### Callbacks
+
+```json
+"button" : {
+    "type" : "button", 
+    "callback" : "betterwidget"
+    //regular button options...
+},
+```
+```lua
+require"/better-widgets.lua"
+function init()
+    local button = bw("button") -- BW will log a warning since no callback was attached to the button on init
+    button.callback = function(name) sb.logInfo("Hello from %s!", name) end
+    button.callback = function(name) sb.logInfo("This callback completely changable!") end
+end
+```
+
+```lua
+....
+MyCustomWidget = Something:extend()
+function MyCustomWidget:callback()
+    self.name --works as expected
+end
+```
+BW has callback detection and alerts you when no callback is available on widget creation.
+If you provide a callback in you custom class it will have it's self correctly assigned,
+right now assigning new callbacks via `wid.callback = f` do not receive a self binding.
+You can still use vanilla callbacks without issues too!
+
+#### Casting
+
+
+```lua
+require"/better-widgets.lua"
+require"/better-widgets/widgets/button.lua"
+
+local MyButton = Button:extend()
+
+function MyButton:callback()
+    self.master.log("Hello from %s", self.name)
+end
+
+function init()
+    local button = bw("button") 
+    button = MyButton:cast(button) -- converts a Button -> MyButton
+end
+```
+If you want to create small extension objects without using `"typeOverride"` you can use `Widget:cast` to change
+a widget from one type to another!
+
 
 ---
 
